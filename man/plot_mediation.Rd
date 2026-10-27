@@ -13,24 +13,24 @@ plot_mediation(
 )
 }
 \arguments{
-\item{x}{A \code{robmedfit} object.}
+\item{x}{A `robmedfit` object.}
 
 \item{estimands}{Character vector of estimands to display.
-Any subset of \code{c("NDE", "NIE", "TE")}. Default \code{c("NDE","NIE")}.}
+Any subset of `c("NDE", "NIE", "TE")`. Default `c("NDE","NIE")`.}
 
-\item{show_total}{Shorthand for adding \code{"TE"} to \code{estimands}. Default \code{FALSE}.}
+\item{show_total}{Shorthand for adding `"TE"` to `estimands`. Default `FALSE`.}
 
-\item{facet}{Logical. Split estimands into separate facets? Default \code{FALSE}.}
+\item{facet}{Logical. Split estimands into separate facets? Default `FALSE`.}
 
 \item{...}{Ignored.}
 }
 \value{
-A \code{ggplot2} object.
+A `ggplot2` object.
 }
 \description{
 Plots NDE, NIE, and (optionally) total effect as smooth spline curves over
 the full range of treatment values, with pointwise bootstrap confidence bands.
-This is the signature visualisation of \strong{RobustMediate} and is
+This is the signature visualisation of **RobustMediate** and is
 publication-ready out of the box.
 }
 \examples{
@@ -39,7 +39,8 @@ fit <- robustmediate(
   treatment_formula = X ~ Z1 + Z2 + Z3,
   mediator_formula  = M ~ X + Z1 + Z2 + Z3,
   outcome_formula   = Y ~ X + M + Z1 + Z2 + Z3,
-  data = sim_mediation, R = 50
+  data = sim_mediation, R = 10, verbose = FALSE,
+  dose_grid = seq(-2, 2, length.out = 25)
 )
 plot_mediation(fit)
 plot_mediation(fit, estimands = c("NDE", "NIE", "TE"), facet = TRUE)

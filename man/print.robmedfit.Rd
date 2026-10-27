@@ -7,7 +7,7 @@
 \method{print}{robmedfit}(x, ...)
 }
 \arguments{
-\item{x}{A \code{robmedfit} object returned by \code{\link[=robustmediate]{robustmediate()}}.}
+\item{x}{A `robmedfit` object returned by [robustmediate()].}
 
 \item{...}{Ignored.}
 }

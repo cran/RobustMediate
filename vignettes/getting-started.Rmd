@@ -18,7 +18,7 @@ knitr::opts_chunk$set(
 
 ## Overview
 
-**RobustMediate** estimates natural direct and indirect effects (NDE/NIE) for continuous treatments using inverse probability weighting (IPW). It embeds three publication-ready visualisations and a paper-writing helper (`diagnose()`) directly into the package workflow.
+**RobustMediate** estimates natural direct and indirect effects (NDE/NIE) for continuous treatments by g-computation from the fitted mediator and outcome models. It adds balance diagnostics, two sensitivity analyses, and a reporting helper (`diagnose()`).
 
 ## Simulated data
 
@@ -43,7 +43,7 @@ fit <- robustmediate(
   mediator_formula  = M ~ X + Z1 + Z2,
   outcome_formula   = Y ~ X + M + Z1 + Z2,
   data    = dat,
-  R       = 200,   # use >= 500 in practice
+  R       = 50,    # use >= 500 in practice
   verbose = FALSE
 )
 print(fit)
@@ -51,9 +51,9 @@ print(fit)
 
 ## 1. Love Plot — `plot_balance()`
 
-The love plot shows standardised mean differences (SMDs) before and after IPW
-weighting for **both** the treatment and mediator pathways. Reviewers require
-|SMD| < 0.10; the dashed lines mark this threshold.
+The love plot shows standardised mean differences (SMDs) before and after
+weighting by stabilised treatment-model weights. The mediator panel is a rough
+screening check. The dashed lines mark the common |SMD| < 0.10 rule of thumb.
 
 ```{r love-plot}
 plot_balance(fit)
@@ -68,16 +68,22 @@ bootstrap confidence bands. The dotted vertical line marks the reference dose.
 plot_mediation(fit, estimands = c("NDE", "NIE", "TE"))
 ```
 
-## 3. Sensitivity Contour — `plot_sensitivity()`
+## 3. Sensitivity — `sensitivity_rho()` and `plot_sensitivity()`
 
-The novel bivariate robustness map. The x-axis is the E-value (how strongly
-an unmeasured confounder would need to be associated with both treatment and
-outcome to explain away the NIE). The y-axis is Imai's ρ (sequential
-ignorability violation). The bold dashed contour marks where the NIE = 0.
+The indirect effect is identified only if no unmeasured variable confounds the
+mediator-outcome relationship. Following Imai, Keele, and Yamamoto (2010),
+`rho` is the correlation between the errors of the mediator and outcome
+models; `rho = 0` under that assumption. The plot shows the indirect effect as
+`rho` moves away from zero, and the dashed line marks where it reaches zero.
 
 ```{r sensitivity-plot}
+sensitivity_rho(fit)
 plot_sensitivity(fit)
 ```
+
+The analysis uses a closed-form result for linear models. It is skipped when
+the mediator or outcome model is not a Gaussian identity-link model, or when
+the treatment or mediator enters through an interaction or transformation.
 
 ## 4. Diagnose — `diagnose()`
 
@@ -87,25 +93,32 @@ Prints a formatted report with a ready-to-paste Results paragraph.
 diagnose(fit)
 ```
 
+## Path-wise robustness — `sensitivity_paths()`
+
+`sensitivity_paths()` gives robustness values in the partial R-squared metric
+of Cinelli and Hazlett (2020) for the a-path, the b-path, and the indirect
+effect. For the indirect effect it reports two values: one for the joint
+significance test (equal to the smaller path value) and one for the Sobel
+test, which is always smaller because one confounder weakens both paths.
+
+```{r paths}
+sp <- sensitivity_paths(fit)
+sp
+plot_paths(sp)
+```
+
 ## Clustered data
 
-Supply `cluster_var` to account for clustering:
+Supply `cluster_var` and the bootstrap resamples whole clusters:
 
 ```{r cluster, eval = FALSE}
+data(sim_mediation)
 fit_clus <- robustmediate(
-  treatment_formula = X ~ Z1 + Z2,
-  mediator_formula  = M ~ X + Z1 + Z2,
-  outcome_formula   = Y ~ X + M + Z1 + Z2,
-  data        = dat,
-  cluster_var = "school_id",
+  treatment_formula = X ~ Z1 + Z2 + Z3,
+  mediator_formula  = M ~ X + Z1 + Z2 + Z3,
+  outcome_formula   = Y ~ X + M + Z1 + Z2 + Z3,
+  data        = sim_mediation,
+  cluster_var = "school",
   R           = 500
 )
 ```
-
-## Theoretical note on the sensitivity contour
-
-The E-value × ρ surface is a *bivariate robustness display*, not a joint
-causal model. For each pair (E-value, ρ), the surface shows the estimated
-NIE if **that single violation** were present. The dimensions should be
-interpreted separately: researchers can ask how large each violation would
-need to be—on its own—to overturn the finding.

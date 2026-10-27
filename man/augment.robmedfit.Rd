@@ -7,25 +7,26 @@
 \method{augment}{robmedfit}(x, data = NULL, ...)
 }
 \arguments{
-\item{x}{A \code{robmedfit} object.}
+\item{x}{A `robmedfit` object.}
 
 \item{data}{Optional data frame to augment. Defaults to the data stored
-in the outcome model's \verb{$data} slot.}
+in the outcome model's `$data` slot.}
 
 \item{...}{Ignored.}
 }
 \value{
 The original data frame with additional columns:
 \describe{
-\item{\code{.ipw_weight}}{Stabilised inverse probability weights.}
-\item{\code{.fitted_mediator}}{Predicted mediator values.}
-\item{\code{.fitted_outcome}}{Predicted outcome values.}
-\item{\code{.resid_mediator}}{Residuals from the mediator model.}
-\item{\code{.resid_outcome}}{Residuals from the outcome model.}
+  \item{`.ipw_weight`}{Stabilised inverse probability weights from the
+    treatment model (the weights used in the balance diagnostics).}
+  \item{`.fitted_mediator`}{Predicted mediator values.}
+  \item{`.fitted_outcome`}{Predicted outcome values.}
+  \item{`.resid_mediator`}{Residuals from the mediator model.}
+  \item{`.resid_outcome`}{Residuals from the outcome model.}
 }
 }
 \description{
-Returns the original data augmented with IPW weights, fitted mediator values,
+Returns the original data augmented with the balance weights, fitted mediator values,
 and fitted outcome values from the pathway models.
 }
 \examples{
@@ -34,7 +35,8 @@ fit <- robustmediate(
   treatment_formula = X ~ Z1 + Z2 + Z3,
   mediator_formula  = M ~ X + Z1 + Z2 + Z3,
   outcome_formula   = Y ~ X + M + Z1 + Z2 + Z3,
-  data = sim_mediation, R = 50
+  data = sim_mediation, R = 10, verbose = FALSE,
+  dose_grid = seq(-2, 2, length.out = 25)
 )
 aug <- augment(fit)
 hist(aug$.ipw_weight)

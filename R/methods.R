@@ -49,16 +49,13 @@ print.robmedfit <- function(x, ...) {
     bal$mediator$max_smd, bal$mediator$n_above
   ))
 
-  if (!is.null(x$meditcv)) {
-    cat("\n  medITCV available: yes\n")
+  if (!is.null(x$sensitivity)) {
+    cat(sprintf(
+      "\n  Sensitivity: indirect effect is zero at rho = %.3f (see sensitivity_rho())\n",
+      x$sensitivity$rho_zero
+    ))
   } else {
-    cat("\n  medITCV available: no\n")
-  }
-
-  if (!is.null(x$meditcv_profile)) {
-    cat("  medITCV profile available: yes\n")
-  } else {
-    cat("  medITCV profile available: no\n")
+    cat("\n  Sensitivity: not available (requires linear mediator and outcome models)\n")
   }
 
   cat("---------------------------------------------------------------\n")
@@ -79,9 +76,7 @@ summary.robmedfit <- function(object, ...) {
   out <- list(
     effects = object$effects$summary,
     balance = object$balance$summary_stats,
-    sensitivity = object$sensitivity$tipping,
-    meditcv = object$meditcv,
-    meditcv_profile = object$meditcv_profile
+    sensitivity = object$sensitivity
   )
 
   invisible(out)

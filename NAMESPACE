@@ -4,54 +4,50 @@ S3method(as.data.frame,robmedfit)
 S3method(augment,robmedfit)
 S3method(glance,robmedfit)
 S3method(plot,robmedfit)
-S3method(print,meditcv)
-S3method(print,meditcv_profile)
+S3method(print,robmed_paths)
+S3method(print,robmed_sens)
 S3method(print,robmedfit)
 S3method(summary,robmedfit)
 S3method(tidy,robmedfit)
+export(adjust_paths)
 export(augment)
 export(compare_fits)
 export(diagnose)
-export(fragility_table)
+export(effect_curvature)
 export(glance)
 export(plot_balance)
 export(plot_curvature)
 export(plot_mediation)
-export(plot_meditcv)
-export(plot_meditcv_profile)
+export(plot_paths)
 export(plot_sensitivity)
 export(robustmediate)
 export(sensitivity_curvature)
-export(sensitivity_meditcv)
-export(sensitivity_meditcv_profile)
+export(sensitivity_paths)
+export(sensitivity_rho)
 export(tidy)
-export(tipping_table)
-importFrom(broom,augment)
-importFrom(broom,glance)
-importFrom(broom,tidy)
-importFrom(ggplot2,aes)
-importFrom(ggplot2,element_blank)
-importFrom(ggplot2,element_line)
-importFrom(ggplot2,element_text)
-importFrom(ggplot2,facet_wrap)
-importFrom(ggplot2,geom_contour)
-importFrom(ggplot2,geom_contour_filled)
-importFrom(ggplot2,geom_hline)
-importFrom(ggplot2,geom_line)
-importFrom(ggplot2,geom_point)
-importFrom(ggplot2,geom_rect)
-importFrom(ggplot2,geom_ribbon)
-importFrom(ggplot2,geom_segment)
-importFrom(ggplot2,geom_text)
-importFrom(ggplot2,geom_vline)
-importFrom(ggplot2,ggplot)
-importFrom(ggplot2,labs)
-importFrom(ggplot2,scale_color_manual)
-importFrom(ggplot2,scale_colour_manual)
-importFrom(ggplot2,scale_fill_brewer)
-importFrom(ggplot2,scale_fill_manual)
-importFrom(ggplot2,scale_linetype_manual)
-importFrom(ggplot2,scale_x_continuous)
-importFrom(ggplot2,theme)
-importFrom(ggplot2,theme_minimal)
+importFrom(broom,
+  augment,
+  glance,
+  tidy
+)
+importFrom(ggplot2,
+  aes,
+  coord_cartesian,
+  element_line,
+  element_text,
+  facet_wrap,
+  geom_hline,
+  geom_line,
+  geom_point,
+  geom_rect,
+  geom_ribbon,
+  geom_vline,
+  ggplot,
+  labs,
+  scale_color_manual,
+  scale_fill_manual,
+  scale_linetype_manual,
+  theme,
+  theme_minimal
+)
 importFrom(stats,aggregate)

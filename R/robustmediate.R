@@ -2,8 +2,17 @@
 #'
 #' @description
 #' Fits treatment, mediator, and outcome models for causal mediation analysis
-#' with continuous treatments using inverse probability weighting (IPW), and
-#' returns a precomputed `robmedfit` object for plotting and diagnostics.
+#' with continuous treatments and returns a precomputed `robmedfit` object for
+#' plotting and diagnostics.
+#'
+#' Natural direct and indirect effects are estimated by g-computation from the
+#' fitted mediator and outcome models, averaging over the observed covariates.
+#' When the outcome model is linear in the mediator (identity link, mediator
+#' entering as a linear term), the predicted mediator mean is plugged in, which
+#' is exact. Otherwise the outcome prediction is averaged over the mediator's
+#' distribution: exactly for a binary mediator, and by a 15-point quantile rule
+#' for a Gaussian mediator. Stabilised inverse probability weights from the
+#' treatment model are used for the balance diagnostics only.
 #'
 #' @param treatment_formula Formula for the treatment model
 #'   (for example, `X ~ Z1 + Z2`).
@@ -21,20 +30,20 @@
 #' @param alpha Significance level. Default is `0.05`.
 #' @param covariates Covariate names for balance diagnostics. If `NULL`,
 #'   covariates are inferred from the treatment formula.
-#' @param cluster_var Optional clustering variable name. `NULL` assumes
-#'   independent observations.
+#' @param cluster_var Optional clustering variable name. When supplied, the
+#'   bootstrap resamples whole clusters, so intervals reflect within-cluster
+#'   dependence. `NULL` assumes independent observations.
 #' @param family_treatment GLM family for the treatment model.
 #'   Default is `stats::gaussian()`.
 #' @param family_mediator GLM family for the mediator model.
 #'   Default is `stats::gaussian()`.
 #' @param family_outcome GLM family for the outcome model.
 #'   Default is `stats::gaussian()`.
-#' @param spline_df Degrees of freedom for spline-based effect summaries.
-#'   Default is `4`.
-#' @param evalue_seq Sequence of E-values used to build the sensitivity surface.
-#'   Default is `seq(1, 10, by = 0.25)`.
-#' @param rho_seq Sequence of `rho` values used to build the sensitivity
-#'   surface. Default is `seq(-1, 1, by = 0.05)`.
+#' @param spline_df Deprecated and ignored. To allow a nonlinear dose-response,
+#'   put a spline of the treatment in the formulas, for example
+#'   `M ~ splines::ns(X, df = 3) + Z1`.
+#' @param rho_seq Values of the sensitivity parameter `rho` passed to
+#'   [sensitivity_rho()]. Default is `seq(-0.9, 0.9, by = 0.01)`.
 #' @param verbose Logical; if `TRUE`, display progress messages.
 #'
 #' @return An object of class `"robmedfit"` containing:
@@ -43,13 +52,11 @@
 #'   \item{`balance`}{Balance statistics before and after weighting.}
 #'   \item{`effects`}{Dose-response summaries for NDE, NIE, and TE, including
 #'     bootstrap intervals.}
-#'   \item{`sensitivity`}{Bivariate E-value and `rho` sensitivity surface.}
-#'   \item{`meditcv`}{Pathway-specific medITCV object from
-#'     `sensitivity_meditcv()`.}
-#'   \item{`meditcv_profile`}{medITCV robustness profile from
-#'     `sensitivity_meditcv_profile()`.}
-#'   \item{`cluster`}{Cluster information, or `NULL` if clustering was not
-#'     used.}
+#'   \item{`sensitivity`}{A `robmed_sens` object from [sensitivity_rho()], or
+#'     `NULL` when the models are not linear (the closed-form result does not
+#'     apply).}
+#'   \item{`cluster`}{Cluster variable, number of clusters, and cluster sizes,
+#'     or `NULL` if clustering was not used.}
 #'   \item{`meta`}{Call, variable names, dose settings, bootstrap settings,
 #'     and sample information.}
 #' }
@@ -69,7 +76,7 @@
 #'   mediator_formula = M ~ X + Z1 + Z2,
 #'   outcome_formula = Y ~ X + M + Z1 + Z2,
 #'   data = dat,
-#'   R = 100
+#'   R = 10, verbose = FALSE
 #' )
 #'
 #' print(fit)
@@ -89,9 +96,8 @@ robustmediate <- function(
     family_treatment = stats::gaussian(),
     family_mediator  = stats::gaussian(),
     family_outcome   = stats::gaussian(),
-    spline_df        = 4,
-    evalue_seq       = seq(1, 10, by = 0.25),
-    rho_seq          = seq(-1, 1, by = 0.05),
+    spline_df        = NULL,
+    rho_seq          = seq(-0.9, 0.9, by = 0.01),
     verbose          = TRUE
 ) {
 
@@ -102,6 +108,13 @@ robustmediate <- function(
     rlang::abort("`R` must be a positive integer.")
   if (R < 50)
     rlang::warn("`R < 50`; bootstrap intervals may be unstable.")
+
+  if (!is.null(spline_df)) {
+    rlang::warn(paste0(
+      "`spline_df` is deprecated and ignored. Put a spline of the treatment in ",
+      "the formulas instead, e.g. splines::ns(X, df = 3)."
+    ))
+  }
 
   treat_var <- all.vars(treatment_formula)[1L]
   med_var   <- all.vars(mediator_formula)[1L]
@@ -117,6 +130,16 @@ robustmediate <- function(
       all.vars(treatment_formula)[-1L],
       c(treat_var, med_var, out_var)
     )
+  }
+
+  cluster_ids <- NULL
+  if (!is.null(cluster_var)) {
+    if (!cluster_var %in% names(data))
+      rlang::abort(paste0("`cluster_var` '", cluster_var, "' not found in `data`."))
+    cluster_ids <- data[[cluster_var]]
+    if (anyNA(cluster_ids)) rlang::abort("`cluster_var` contains missing values.")
+    if (length(unique(cluster_ids)) < 10L)
+      rlang::warn("Fewer than 10 clusters; the cluster bootstrap may be unreliable.")
   }
 
   x_obs <- data[[treat_var]]
@@ -176,85 +199,27 @@ robustmediate <- function(
     family_treatment  = family_treatment,
     family_mediator   = family_mediator,
     family_outcome    = family_outcome,
+    cluster_ids       = cluster_ids,
     verbose           = verbose
-  )
-
-  # ── Sensitivity surface ─────────────────────────────────────────────────────
-  if (verbose) {
-    cli::cli_alert_info(
-      paste0("Building sensitivity surface (",
-             length(evalue_seq), " x ", length(rho_seq), " grid)...")
-    )
-  }
-
-  sensitivity <- .sensitivity_surface(
-    effects    = effects,
-    evalue_seq = evalue_seq,
-    rho_seq    = rho_seq
-  )
-
-  # ── Partial fit for medITCV ─────────────────────────────────────────────────
-  partial_fit <- structure(
-    list(
-      models = models,
-      meta   = list(treat_var = treat_var,
-                    med_var   = med_var,
-                    out_var   = out_var,
-                    alpha     = alpha)
-    ),
-    class = "robmedfit"
-  )
-
-  if (verbose) cli::cli_alert_info("Computing medITCV for both pathways...")
-
-  meditcv <- tryCatch(
-    sensitivity_meditcv(partial_fit, alpha = alpha),
-    error = function(e) {
-      rlang::warn(paste0("medITCV computation failed: ", conditionMessage(e)))
-      NULL
-    }
-  )
-
-  partial_fit$meditcv <- meditcv
-
-  if (verbose) cli::cli_alert_info("Computing medITCV robustness profile...")
-
-  meditcv_profile <- tryCatch(
-    sensitivity_meditcv_profile(partial_fit, alpha = alpha),
-    error = function(e) {
-      rlang::warn(paste0("medITCV profile failed: ", conditionMessage(e)))
-      NULL
-    }
   )
 
   # ── Cluster info ────────────────────────────────────────────────────────────
   cluster_info <- NULL
   if (!is.null(cluster_var)) {
-    if (!cluster_var %in% names(data))
-      rlang::abort(paste0("`cluster_var` '", cluster_var, "' not found in `data`."))
     cluster_info <- list(
       group_var  = cluster_var,
-      icc        = .compute_icc(models$outcome),
       n_clusters = length(unique(data[[cluster_var]])),
       n_per      = table(data[[cluster_var]])
     )
   }
 
-  if (verbose) {
-    cli::cli_alert_success(
-      "RobustMediate fit complete. Use print(), diagnose(), or plot() to explore results."
-    )
-  }
-
-  # ── Return ──────────────────────────────────────────────────────────────────
-  structure(
+  # ── Sensitivity to mediator-outcome confounding ─────────────────────────────
+  fit <- structure(
     list(
       models          = models,
       balance         = balance,
       effects         = effects,
-      sensitivity     = sensitivity,
-      meditcv         = meditcv,
-      meditcv_profile = meditcv_profile,
+      sensitivity     = NULL,
       cluster         = cluster_info,
       meta            = list(
         call      = match.call(),
@@ -263,7 +228,6 @@ robustmediate <- function(
         out_var   = out_var,
         ref_dose  = ref_dose,
         dose_grid = dose_grid,
-        spline_df = spline_df,
         n_obs     = nrow(data),
         R         = R,
         alpha     = alpha,
@@ -272,6 +236,27 @@ robustmediate <- function(
     ),
     class = "robmedfit"
   )
+
+  if (verbose) cli::cli_alert_info("Computing sensitivity to mediator-outcome confounding...")
+  fit$sensitivity <- tryCatch(
+    sensitivity_rho(fit, rho_seq = rho_seq),
+    error = function(e) {
+      if (verbose) {
+        cli::cli_alert_warning(paste0(
+          "Sensitivity analysis skipped: ", conditionMessage(e)
+        ))
+      }
+      NULL
+    }
+  )
+
+  if (verbose) {
+    cli::cli_alert_success(
+      "RobustMediate fit complete. Use print(), diagnose(), or plot() to explore results."
+    )
+  }
+
+  fit
 }
 
 
@@ -363,28 +348,73 @@ robustmediate <- function(
 }
 
 # ── Single g-computation effect ────────────────────────────────────────────────
+#
+# E[Y(x_out, M(x_med))] averaged over covariates. How the mediator is
+# integrated out depends on the models (see .mediator_mode()).
+.mean_po <- function(models, data, x_out, x_med, treat_var, med_var, mode) {
+  d_med <- data; d_med[[treat_var]] <- x_med
+  d_out <- data; d_out[[treat_var]] <- x_out
+  mu <- stats::predict(models$mediator, newdata = d_med, type = "response")
+
+  pred_at <- function(m) {
+    d <- d_out; d[[med_var]] <- m
+    stats::predict(models$outcome, newdata = d, type = "response")
+  }
+
+  if (mode == "plugin") {
+    return(mean(pred_at(mu)))
+  }
+  if (mode == "binary") {
+    return(mean(mu * pred_at(rep(1, length(mu))) +
+                (1 - mu) * pred_at(rep(0, length(mu)))))
+  }
+  # Gaussian mediator: equal-weight quantile rule over N(mu, sigma^2)
+  sig <- sqrt(summary(models$mediator)$dispersion)
+  z   <- stats::qnorm((seq_len(15L) - 0.5) / 15L)
+  mean(vapply(z, function(zk) mean(pred_at(mu + sig * zk)), numeric(1L)))
+}
+
 .single_effect <- function(models, data, x, x_ref, treat_var, med_var,
-                           out_var) {
-  d_x   <- data; d_x[[treat_var]]   <- x
-  d_ref <- data; d_ref[[treat_var]] <- x_ref
-
-  m_hat_x   <- stats::predict(models$mediator, newdata = d_x,   type = "response")
-  m_hat_ref <- stats::predict(models$mediator, newdata = d_ref, type = "response")
-
-  d_x_mx    <- d_x;   d_x_mx[[med_var]]    <- m_hat_x
-  d_ref_mref <- d_ref; d_ref_mref[[med_var]] <- m_hat_ref
-  d_x_mref  <- d_x;   d_x_mref[[med_var]]  <- m_hat_ref
-
-  y_x_mx     <- mean(stats::predict(models$outcome, newdata = d_x_mx,
-                                    type = "response"))
-  y_ref_mref <- mean(stats::predict(models$outcome, newdata = d_ref_mref,
-                                    type = "response"))
-  y_x_mref   <- mean(stats::predict(models$outcome, newdata = d_x_mref,
-                                    type = "response"))
+                           out_var, mode = "plugin") {
+  y_x_mx     <- .mean_po(models, data, x,     x,     treat_var, med_var, mode)
+  y_ref_mref <- .mean_po(models, data, x_ref, x_ref, treat_var, med_var, mode)
+  y_x_mref   <- .mean_po(models, data, x,     x_ref, treat_var, med_var, mode)
 
   c(NDE = y_x_mref - y_ref_mref,
     NIE = y_x_mx   - y_x_mref,
     TE  = y_x_mx   - y_ref_mref)
+}
+
+# Choose how to integrate over the mediator.
+#   "plugin":   outcome linear in M (identity link, M only as a linear factor);
+#               plugging in E[M] is exact.
+#   "binary":   binomial mediator coded 0/1; exact two-point average.
+#   "gaussian": Gaussian identity-link mediator; quantile rule.
+.mediator_mode <- function(models, med_var, data) {
+  out_fam <- stats::family(models$outcome)
+  med_fam <- stats::family(models$mediator)
+  lbls    <- attr(stats::terms(models$outcome), "term.labels")
+  m_terms <- lbls[vapply(lbls, function(l)
+    med_var %in% all.vars(stats::as.formula(paste("~", l))), logical(1L))]
+  linear_in_m <- all(vapply(m_terms, function(l) {
+    parts <- strsplit(l, ":", fixed = TRUE)[[1L]]
+    has_m <- vapply(parts, function(p)
+      med_var %in% all.vars(stats::as.formula(paste("~", p))), logical(1L))
+    sum(has_m) == 1L && parts[has_m] == med_var
+  }, logical(1L)))
+
+  if (out_fam$link == "identity" && linear_in_m) return("plugin")
+  if (med_fam$family %in% c("binomial", "quasibinomial")) {
+    mv <- data[[med_var]]
+    if (all(mv[!is.na(mv)] %in% c(0, 1))) return("binary")
+  }
+  if (med_fam$family == "gaussian" && med_fam$link == "identity") return("gaussian")
+  rlang::warn(paste0(
+    "The outcome model is not linear in the mediator and the mediator family ",
+    "is not Gaussian or binary. The indirect effect uses the plug-in ",
+    "approximation E[Y | x, E(M)], which can be biased."
+  ))
+  "plugin"
 }
 
 # ── Effect curves with FIXED bootstrap ────────────────────────────────────────
@@ -399,7 +429,8 @@ robustmediate <- function(
                            treat_var, med_var, out_var,
                            treatment_formula, mediator_formula, outcome_formula,
                            family_treatment, family_mediator, family_outcome,
-                           verbose) {
+                           cluster_ids = NULL, verbose) {
+  mode <- .mediator_mode(models, med_var, data)
   n         <- nrow(data)
   n_doses   <- length(dose_grid)
   estimands <- c("NDE", "NIE", "TE")
@@ -412,7 +443,7 @@ robustmediate <- function(
   for (i in seq_len(n_doses)) {
     pe_mat[i, ] <- tryCatch(
       .single_effect(models, data, dose_grid[i], ref_dose,
-                     treat_var, med_var, out_var),
+                     treat_var, med_var, out_var, mode),
       error = function(e) rep(NA_real_, n_est)
     )
   }
@@ -430,8 +461,12 @@ robustmediate <- function(
 
   for (r in seq_len(R)) {
 
-    # Sample with replacement — RESET ROWNAMES (fixes the glm crash)
-    idx           <- sample.int(n, size = n, replace = TRUE)
+    # Resample rows, or whole clusters when cluster_ids is supplied
+    idx <- if (is.null(cluster_ids)) {
+      sample.int(n, size = n, replace = TRUE)
+    } else {
+      .cluster_resample(cluster_ids)
+    }
     boot_data     <- data[idx, , drop = FALSE]
     rownames(boot_data) <- NULL
 
@@ -468,7 +503,7 @@ robustmediate <- function(
     for (i in seq_len(n_doses)) {
       val <- tryCatch(
         .single_effect(boot_models, boot_data, dose_grid[i], ref_dose,
-                       treat_var, med_var, out_var),
+                       treat_var, med_var, out_var, mode),
         error = function(e) rep(NA_real_, n_est)
       )
       boot_arr[i, , r] <- val
@@ -557,55 +592,18 @@ robustmediate <- function(
   list(
     curves       = curves,
     summary      = smry,
-    n_boot_valid = n_valid   # diagnostic: number of successful replicates
+    n_boot_valid = n_valid,  # diagnostic: number of successful replicates
+    boot         = boot_arr  # replicate curves: dose x estimand x replicate
   )
 }
 
-# ── Sensitivity surface ────────────────────────────────────────────────────────
-.sensitivity_surface <- function(effects, evalue_seq, rho_seq) {
-  nie_base <- effects$summary$NIE
-  nie_lo   <- effects$summary$NIE_lo
-  nie_hi   <- effects$summary$NIE_hi
-
-  nie_se <- if (!is.na(nie_lo) && !is.na(nie_hi) &&
-                is.finite(nie_lo) && is.finite(nie_hi)) {
-    (nie_hi - nie_lo) / (2 * 1.96)
-  } else {
-    abs(nie_base) * 0.1 + 1e-6
-  }
-
-  if (!is.finite(nie_se) || nie_se < 1e-10)
-    nie_se <- abs(nie_base) * 0.1 + 1e-6
-
-  grid        <- expand.grid(evalue = evalue_seq, rho = rho_seq)
-  grid$effect <- nie_base / grid$evalue + grid$rho * nie_se
-  grid$sig    <- abs(grid$effect / nie_se) > 1.96
-
-  evalue_null <- if (abs(nie_base) > 1e-10) {
-    max(1, min(abs(nie_base) / (abs(nie_base) - abs(nie_se) * 1.96),
-               max(evalue_seq)))
-  } else {
-    1
-  }
-
-  rho_null <- if (nie_se > 1e-10) -nie_base / nie_se else 0
-  rho_null <- sign(rho_null) * min(abs(rho_null), max(abs(rho_seq)))
-
-  list(
-    surface = grid,
-    tipping = list(
-      evalue_NIE = round(evalue_null, 3L),
-      rho_min    = round(rho_null,    3L)
-    )
-  )
-}
-
-# ── ICC helper ─────────────────────────────────────────────────────────────────
-.compute_icc <- function(outcome_model) {
-  tryCatch(
-    { stats::residuals(outcome_model); 0.05 },
-    error = function(e) NA_real_
-  )
+# ── Cluster bootstrap indices ─────────────────────────────────────────────────
+# Draw clusters with replacement and return the row indices of the drawn
+# clusters (a cluster drawn twice contributes its rows twice).
+.cluster_resample <- function(cluster_ids) {
+  rows_by <- split(seq_along(cluster_ids), cluster_ids, drop = TRUE)
+  pick    <- sample.int(length(rows_by), length(rows_by), replace = TRUE)
+  unlist(rows_by[pick], use.names = FALSE)
 }
 
 # ── Safe string interpolation ──────────────────────────────────────────────────

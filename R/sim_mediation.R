@@ -42,7 +42,8 @@
 #'   outcome_formula   = Y ~ X + M + Z1 + Z2 + Z3,
 #'   data        = sim_mediation,
 #'   cluster_var = "school",
-#'   R           = 500
+#'   R           = 10,
+#'   verbose     = FALSE
 #' )
 #' diagnose(fit)
 #' }

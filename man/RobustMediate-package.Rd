@@ -6,35 +6,34 @@
 \alias{RobustMediate-package}
 \title{RobustMediate: Causal Mediation Analysis with Diagnostics and Sensitivity Analysis}
 \description{
-\strong{RobustMediate} provides a workflow for causal mediation analysis with
-continuous treatments using inverse probability weighting (IPW), diagnostic
-tools, and sensitivity analysis.
+**RobustMediate** provides a workflow for causal mediation analysis with
+continuous treatments: g-computation estimates of natural direct and
+indirect effects, balance diagnostics, and sensitivity analysis.
 
 Main functions include:
-\itemize{
-\item \strong{\code{robustmediate()}} - Fits treatment, mediator, and outcome models and
-stores precomputed results for downstream plotting and reporting.
-\item \strong{\code{plot_balance()}} - Displays covariate balance before and after weighting
-for both the treatment and mediator pathways using standardized mean
-differences.
-\item \strong{\code{plot_mediation()}} - Plots estimated natural direct effects (NDE) and
-natural indirect effects (NIE) over the treatment range, with pointwise
-uncertainty bands.
-\item \strong{\code{plot_sensitivity()}} - Displays a bivariate sensitivity surface based on
-E-values and sequential ignorability violations parameterized by \code{rho}.
-\item \strong{\code{sensitivity_meditcv()}} - Computes pathway-specific mediation ITCV
-(\code{medITCV}) diagnostics based on Frank's impact threshold for a
-confounding variable framework.
-\item \strong{\code{plot_meditcv()}} - Displays pathway-specific medITCV robustness
-corridors for the a-path and b-path.
-\item \strong{\code{diagnose()}} - Produces a formatted diagnostic summary of balance,
-mediation effects, and sensitivity results.
-}
+
+- **`robustmediate()`** - Fits treatment, mediator, and outcome models and
+  stores precomputed results for downstream plotting and reporting.
+
+- **`plot_balance()`** - Displays covariate balance before and after weighting
+  for both the treatment and mediator pathways using standardized mean
+  differences.
+
+- **`plot_mediation()`** - Plots estimated natural direct effects (NDE) and
+  natural indirect effects (NIE) over the treatment range, with pointwise
+  uncertainty bands.
+
+- **`sensitivity_rho()`** and **`plot_sensitivity()`** - Sensitivity of the
+  indirect effect to confounding of the mediator-outcome relationship, using
+  the correlation parameter `rho` of Imai, Keele, and Yamamoto (2010).
+
+- **`diagnose()`** - Produces a formatted diagnostic summary of balance,
+  mediation effects, and sensitivity results.
 }
 \section{Getting started}{
 
-
-\if{html}{\out{<div class="sourceCode r">}}\preformatted{library(RobustMediate)
+```r
+library(RobustMediate)
 
 data(sim_mediation)
 
@@ -49,44 +48,38 @@ fit <- robustmediate(
 plot(fit)
 plot(fit, type = "balance")
 plot(fit, type = "sensitivity")
-plot(fit, type = "meditcv")
 diagnose(fit)
-}\if{html}{\out{</div>}}
+```
 }
 
 \section{Sensitivity interpretation}{
 
-The E-value x \code{rho} surface is a bivariate robustness display rather than a
-single unified causal model. It is intended to help users examine how large
-different classes of unmeasured confounding would need to be to attenuate or
-nullify the estimated indirect effect.
-
-The mediation ITCV (\code{medITCV}) is reported separately for the a-path and
-b-path. The indirect-effect summary is interpreted as a minimum-path
-robustness bound governed by the weaker pathway.
+`sensitivity_rho()` reports how the indirect effect changes as the
+correlation `rho` between the mediator-model and outcome-model errors moves
+away from zero, and the value of `rho` at which it reaches zero. It applies
+to linear models only and assumes the treatment is ignorable given the
+covariates.
 }
 
 \references{
-Frank, K. A. (2000). Impact of a confounding variable on a regression
-coefficient. \emph{Sociological Methods & Research}, 29(2), 147--194.
-
-Imai, K., Keele, L., & Yamamoto, T. (2010). Identification, inference, and
-sensitivity analysis for causal mediation effects. \emph{Psychological Methods},
-15(4), 309--334.
-
-VanderWeele, T. J., & Ding, P. (2017). Sensitivity analysis in observational
-research: Introducing the E-value. \emph{Annals of Internal Medicine}, 167(4),
-268--274.
+Imai, K., Keele, L., & Yamamoto, T. (2010). Identification, inference and
+sensitivity analysis for causal mediation effects. *Statistical Science*,
+25(1), 51--71.
 }
 \seealso{
 Useful links:
 \itemize{
-  \item \url{https://github.com/causalfragility-lab/RobustMediate}
-  \item Report bugs at \url{https://github.com/causalfragility-lab/RobustMediate/issues}
+  \item \url{https://github.com/subirhait/RobustMediate}
+  \item Report bugs at \url{https://github.com/subirhait/RobustMediate/issues}
 }
 
 }
 \author{
 \strong{Maintainer}: Subir Hait \email{haitsubi@msu.edu} (\href{https://orcid.org/0009-0004-9871-9677}{ORCID})
+
+Authors:
+\itemize{
+  \item Subir Hait \email{haitsubi@msu.edu} (\href{https://orcid.org/0009-0004-9871-9677}{ORCID})
+}
 
 }

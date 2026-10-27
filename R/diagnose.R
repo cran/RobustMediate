@@ -9,8 +9,8 @@
 #' @param x A `robmedfit` object.
 #' @param ... Ignored.
 #'
-#' @return Invisibly returns a list with elements `balance`, `effects`,
-#'   `sensitivity`, `meditcv`, and `meditcv_profile`.
+#' @return Invisibly returns a list with elements `balance`, `effects`, and
+#'   `sensitivity`.
 #'
 #' @export
 diagnose <- function(x, ...) {
@@ -21,7 +21,7 @@ diagnose <- function(x, ...) {
 
   bal  <- x$balance$summary_stats
   eff  <- x$effects$summary
-  sens <- x$sensitivity$tipping
+  sens <- x$sensitivity
   m    <- x$meta
 
   # ── Header ─────────────────────────────────────────────
@@ -66,102 +66,28 @@ diagnose <- function(x, ...) {
 
   cat(sprintf("  %% mediated: %.1f%%\n", eff$pct_mediated))
 
-  # ── Sensitivity 1: E-value / rho ────────────────────────
-  cat("\n-- Sensitivity 1: E-value x rho surface ----------------------\n")
-  cat(sprintf("  E-value to nullify NIE:       %.2f\n", sens$evalue_NIE))
-  cat(sprintf("  Minimum |rho| to nullify NIE: %.2f\n", abs(sens$rho_min)))
+  # ── Sensitivity ─────────────────────────────────────────
+  cat("\n-- Sensitivity to mediator-outcome confounding --------------\n")
 
-  cat("\n  Suggested text for Results section:\n")
-  cat(sprintf(
-    paste0(
-      "  \"Sensitivity analyses indicated that an unmeasured confounder\n",
-      "   would need to be associated %.1f times with both treatment and outcome\n",
-      "   to fully explain away the estimated indirect effect\n",
-      "   (NIE = %.3f, %d%% CI [%.3f, %.3f]).\n",
-      "   The sequential-ignorability violation |rho| would need to exceed\n",
-      "   %.2f to nullify this finding.\"\n"
-    ),
-    sens$evalue_NIE,
-    eff$NIE,
-    round(100 * (1 - m$alpha)),
-    eff$NIE_lo,
-    eff$NIE_hi,
-    abs(sens$rho_min)
-  ))
-
-  # ── Sensitivity 2: medITCV ──────────────────────────────
-  cat("\n-- Sensitivity 2: medITCV ------------------------------------\n")
-
-  med_obj <- x$meditcv
-
-  if (is.null(med_obj)) {
-
-    cat("  medITCV not available (computation failed; check warnings).\n")
-
+  if (is.null(sens)) {
+    cat("  Not available: requires Gaussian identity-link mediator and outcome\n")
+    cat("  models with the treatment and mediator entering as main effects.\n")
   } else {
+    cat(sprintf("  Indirect effect is zero at rho = %.3f\n", sens$rho_zero))
+    cat(sprintf("  Equivalent R2*_M x R2*_Y = %.4f\n", sens$r2_product_zero))
 
-    a   <- med_obj$a_path
-    b   <- med_obj$b_path
-    ind <- med_obj$indirect
-
-    classify <- function(v) {
-      if (v < 0) "not significant"
-      else if (v < 0.10) "fragile"
-      else "robust"
-    }
-
-    cat("  a-path (X -> M)\n")
+    cat("\n  Suggested text for Results section:\n")
     cat(sprintf(
-      "    Observed r = %.4f  |  Critical r = %.4f  |  medITCV = %.4f  [%s]\n",
-      a$r_obs, a$r_crit, a$meditcv, classify(a$meditcv)
+      paste0(
+        "  \"Following Imai, Keele, and Yamamoto (2010), the estimated indirect\n",
+        "   effect would be zero if the correlation between the errors of the\n",
+        "   mediator and outcome models were %.2f. Equivalently, an unmeasured\n",
+        "   confounder would need to explain proportions of the residual variance\n",
+        "   of the mediator and outcome whose product is %.3f.\"\n"
+      ),
+      sens$rho_zero, sens$r2_product_zero
     ))
-    cat(sprintf(
-      "    Need |r_XC * r_YC| > %.4f (%.1f%% above threshold)\n",
-      a$meditcv, a$meditcv_pct
-    ))
-
-    cat("  b-path (M -> Y | X)\n")
-    cat(sprintf(
-      "    Observed r = %.4f  |  Critical r = %.4f  |  medITCV = %.4f  [%s]\n",
-      b$r_obs, b$r_crit, b$meditcv, classify(b$meditcv)
-    ))
-    cat(sprintf(
-      "    Need |r_XC * r_YC| > %.4f (%.1f%% above threshold)\n",
-      b$meditcv, b$meditcv_pct
-    ))
-
-    cat(sprintf(
-      "\n  Bottleneck: %s (minimum-path medITCV = %.4f)\n",
-      ind$bottleneck,
-      ind$meditcv_indirect
-    ))
-
-    cat("  Use plot(fit, type = \"meditcv\") for visualization.\n")
-  }
-
-  # ── Sensitivity 3: medITCV profile ──────────────────────
-  cat("\n-- Sensitivity 3: medITCV robustness profile -----------------\n")
-
-  if (!is.null(x$meditcv_profile)) {
-
-    mp <- x$meditcv_profile
-
-    cat(sprintf("  medITCV_a (X->M):        %.4f\n", mp$a_path))
-    cat(sprintf("  medITCV_b (M->Y|X):      %.4f\n", mp$b_path))
-    cat(sprintf("  medITCV_indirect:        %.4f\n", mp$meditcv_indirect))
-    cat(sprintf("  Fragility ratio (a/b):   %.3f\n", mp$fragility_ratio))
-    cat(sprintf("  Bottleneck:              %s\n", mp$bottleneck))
-
-    cat(sprintf(
-      "\n  Tipping-point confounder r = %.3f would nullify the indirect effect.\n",
-      sqrt(max(mp$meditcv_indirect, 0))
-    ))
-
-    cat("  Use plot(fit, type = \"meditcv_profile\") for visualization.\n")
-
-  } else {
-
-    cat("  medITCV robustness profile not available.\n")
+    cat("  Use plot(fit, type = \"sensitivity\") for visualization.\n")
   }
 
   cat("\n--------------------------------------------------------------\n")
@@ -169,8 +95,6 @@ diagnose <- function(x, ...) {
   invisible(list(
     balance         = bal,
     effects         = eff,
-    sensitivity     = sens,
-    meditcv         = x$meditcv,
-    meditcv_profile = x$meditcv_profile
+    sensitivity     = sens
   ))
 }

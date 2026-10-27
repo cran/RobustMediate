@@ -13,23 +13,23 @@ compare_fits(
 )
 }
 \arguments{
-\item{fit1}{First \code{robmedfit} object.}
+\item{fit1}{First `robmedfit` object.}
 
-\item{fit2}{Second \code{robmedfit} object.}
+\item{fit2}{Second `robmedfit` object.}
 
-\item{label1}{Label for \code{fit1}. Default \code{"Model 1"}.}
+\item{label1}{Label for `fit1`. Default `"Model 1"`.}
 
-\item{label2}{Label for \code{fit2}. Default \code{"Model 2"}.}
+\item{label2}{Label for `fit2`. Default `"Model 2"`.}
 
-\item{estimands}{Estimands to display. Default \code{c("NDE","NIE")}.}
+\item{estimands}{Estimands to display. Default `c("NDE","NIE")`.}
 }
 \value{
-A \code{ggplot2} object.
+A `ggplot2` object.
 }
 \description{
-Overlays the NDE/NIE/TE curves from two \code{robmedfit} objects on the same
-panel. Useful for sensitivity comparisons (e.g. different spline degrees,
-trimming thresholds, or model specifications).
+Overlays the NDE/NIE/TE curves from two `robmedfit` objects on the same
+panel. Useful for comparing model specifications (e.g. different
+covariate sets).
 }
 \examples{
 \donttest{
@@ -37,15 +37,17 @@ fit_a <- robustmediate(
   treatment_formula = X ~ Z1 + Z2 + Z3,
   mediator_formula  = M ~ X + Z1 + Z2 + Z3,
   outcome_formula   = Y ~ X + M + Z1 + Z2 + Z3,
-  data = sim_mediation, spline_df = 3, R = 50
+  data = sim_mediation, R = 10, verbose = FALSE,
+  dose_grid = seq(-2, 2, length.out = 25)
 )
 fit_b <- robustmediate(
-  treatment_formula = X ~ Z1 + Z2 + Z3,
-  mediator_formula  = M ~ X + Z1 + Z2 + Z3,
-  outcome_formula   = Y ~ X + M + Z1 + Z2 + Z3,
-  data = sim_mediation, spline_df = 6, R = 50
+  treatment_formula = X ~ Z1 + Z2,
+  mediator_formula  = M ~ X + Z1 + Z2,
+  outcome_formula   = Y ~ X + M + Z1 + Z2,
+  data = sim_mediation, R = 10, verbose = FALSE,
+  dose_grid = seq(-2, 2, length.out = 25)
 )
-compare_fits(fit_a, fit_b, label1 = "df=3", label2 = "df=6")
+compare_fits(fit_a, fit_b, label1 = "With Z3", label2 = "Without Z3")
 }
 
 }

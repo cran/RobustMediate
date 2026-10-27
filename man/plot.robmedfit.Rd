@@ -4,31 +4,26 @@
 \alias{plot.robmedfit}
 \title{Plot a robmedfit object}
 \usage{
-\method{plot}{robmedfit}(
-  x,
-  type = c("mediation", "balance", "sensitivity", "meditcv", "meditcv_profile",
-    "curvature"),
-  ...
-)
+\method{plot}{robmedfit}(x, type = c("mediation", "balance", "sensitivity", "curvature"), ...)
 }
 \arguments{
-\item{x}{A \code{robmedfit} object.}
+\item{x}{A `robmedfit` object.}
 
 \item{type}{Which plot to produce. One of:
 \describe{
-\item{\code{"mediation"}}{Dose-response curve of NDE/NIE/TE (default).}
-\item{\code{"balance"}}{Dual love plot of covariate balance.}
-\item{\code{"sensitivity"}}{E-value x rho sensitivity contour.}
-\item{\code{"meditcv"}}{Pathway-specific medITCV robustness corridor.}
-\item{\code{"meditcv_profile"}}{medITCV robustness profile (fragility decomposition).}
-\item{\code{"curvature"}}{Dose-varying fragility (curvature-based sensitivity).}
+  \item{`"mediation"`}{Dose-response curve of NDE/NIE/TE (default).}
+  \item{`"balance"`}{Dual love plot of covariate balance.}
+  \item{`"sensitivity"`}{Indirect effect as a function of `rho`
+    (see [sensitivity_rho()]).}
+  \item{`"curvature"`}{Effect curve and its curvature (see
+    [effect_curvature()]).}
 }}
 
 \item{...}{Passed to the underlying plot function.}
 }
 \value{
-A \code{ggplot2} object.
+A `ggplot2` object.
 }
 \description{
-Dispatches to the appropriate plot function based on \code{type}.
+Dispatches to the appropriate plot function based on `type`.
 }

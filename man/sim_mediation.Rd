@@ -7,18 +7,18 @@
 \format{
 A data frame with 600 rows (30 schools x 20 students) and 7 columns:
 \describe{
-\item{school}{Factor. School identifier (30 levels). Use as \code{cluster_var}.}
-\item{Y}{Numeric. End-of-year test score (outcome).}
-\item{X}{Numeric. Tutoring hours received (continuous treatment, >= 0).}
-\item{M}{Numeric. Mid-year test score (mediator).}
-\item{Z1}{Numeric. Prior achievement (continuous covariate).}
-\item{Z2}{Integer (0/1). Free-lunch status (binary covariate).}
-\item{Z3}{Numeric. Parental education index (continuous covariate).}
+  \item{school}{Factor. School identifier (30 levels). Use as `cluster_var`.}
+  \item{Y}{Numeric. End-of-year test score (outcome).}
+  \item{X}{Numeric. Tutoring hours received (continuous treatment, >= 0).}
+  \item{M}{Numeric. Mid-year test score (mediator).}
+  \item{Z1}{Numeric. Prior achievement (continuous covariate).}
+  \item{Z2}{Integer (0/1). Free-lunch status (binary covariate).}
+  \item{Z3}{Numeric. Parental education index (continuous covariate).}
 }
 }
 \source{
-Generated via \code{data-raw/generate_sim_data.R}. See that script for
-the full data-generating process.
+Generated via `data-raw/generate_sim_data.R`. See that script for
+  the full data-generating process.
 }
 \usage{
 sim_mediation
@@ -27,16 +27,16 @@ sim_mediation
 A synthetic dataset mimicking a clustered education study with a continuous
 treatment (tutoring hours), a continuous mediator (mid-year test score),
 and a continuous outcome (end-of-year test score). Designed to illustrate
-\strong{RobustMediate} with realistic effect sizes and non-trivial confounding.
+**RobustMediate** with realistic effect sizes and non-trivial confounding.
 }
 \section{True parameter targets}{
 
 The data-generating process sets:
 \itemize{
-\item \strong{NDE} (X → Y direct path) ~= \strong{0.25}
-\item \strong{NIE} (X → M → Y path)    ~= \strong{0.35}
-\item \strong{TE}                       ~= \strong{0.60}
-\item \strong{\% mediated}               ~= \strong{58\%}
+  \item **NDE** (X → Y direct path) ~= **0.25**
+  \item **NIE** (X → M → Y path)    ~= **0.35**
+  \item **TE**                       ~= **0.60**
+  \item **% mediated**               ~= **58%**
 }
 Use these as a ground truth to assess estimation accuracy.
 }
@@ -53,7 +53,8 @@ fit <- robustmediate(
   outcome_formula   = Y ~ X + M + Z1 + Z2 + Z3,
   data        = sim_mediation,
   cluster_var = "school",
-  R           = 500
+  R           = 10,
+  verbose     = FALSE
 )
 diagnose(fit)
 }

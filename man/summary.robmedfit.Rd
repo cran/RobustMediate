@@ -7,7 +7,7 @@
 \method{summary}{robmedfit}(object, ...)
 }
 \arguments{
-\item{object}{A \code{robmedfit} object.}
+\item{object}{A `robmedfit` object.}
 
 \item{...}{Ignored.}
 }

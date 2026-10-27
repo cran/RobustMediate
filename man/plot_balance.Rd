@@ -7,24 +7,26 @@
 plot_balance(x, threshold = 0.1, pathways = c("treatment", "mediator"), ...)
 }
 \arguments{
-\item{x}{A \code{robmedfit} object.}
+\item{x}{A `robmedfit` object.}
 
 \item{threshold}{Absolute SMD threshold displayed as dashed reference lines.
-Reviewers conventionally accept |SMD| < 0.10. Default \code{0.1}.}
+A common rule of thumb is |SMD| < 0.10. Default `0.1`.}
 
 \item{pathways}{Character vector indicating which pathways to show.
-Options: \code{"treatment"}, \code{"mediator"}, or both (default).}
+Options: `"treatment"`, `"mediator"`, or both (default).}
 
 \item{...}{Ignored (for S3 consistency).}
 }
 \value{
-A \code{ggplot2} object. Add layers or themes as usual.
+A `ggplot2` object. Add layers or themes as usual.
 }
 \description{
-Produces a publication-ready love plot showing standardised mean differences
-(SMDs) before and after IPW weighting for \strong{both} the treatment and mediator
-pathways — stacked vertically in a single panel. This dual-pathway display is
-unique to \strong{RobustMediate}; no other mediation package provides it.
+Produces a love plot of standardised mean differences (SMDs) before and
+after weighting by the stabilised treatment-model weights. For the treatment
+pathway, covariates are compared between units above and below the median
+treatment. For the mediator pathway, they are compared between units above
+and below their predicted mediator value; this is a rough screening check,
+not a formal balance criterion for the mediator model.
 }
 \examples{
 \donttest{
@@ -32,7 +34,8 @@ fit <- robustmediate(
   treatment_formula = X ~ Z1 + Z2 + Z3,
   mediator_formula  = M ~ X + Z1 + Z2 + Z3,
   outcome_formula   = Y ~ X + M + Z1 + Z2 + Z3,
-  data = sim_mediation, R = 50
+  data = sim_mediation, R = 10, verbose = FALSE,
+  dose_grid = seq(-2, 2, length.out = 25)
 )
 plot_balance(fit)
 plot_balance(fit, threshold = 0.05, pathways = "treatment")

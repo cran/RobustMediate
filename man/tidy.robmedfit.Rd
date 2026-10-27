@@ -7,20 +7,20 @@
 \method{tidy}{robmedfit}(x, conf.int = TRUE, ...)
 }
 \arguments{
-\item{x}{A \code{robmedfit} object.}
+\item{x}{A `robmedfit` object.}
 
-\item{conf.int}{Logical. Include confidence interval columns? Default \code{TRUE}.}
+\item{conf.int}{Logical. Include confidence interval columns? Default `TRUE`.}
 
 \item{...}{Ignored.}
 }
 \value{
-A data frame with columns \code{term}, \code{estimate}, \code{conf.low},
-\code{conf.high}, and \code{ref_dose}.
+A data frame with columns `term`, `estimate`, `conf.low`,
+  `conf.high`, and `ref_dose`.
 }
 \description{
 Returns a tidy data frame of the mediation effect estimates (NDE, NIE, TE)
 at the reference dose, with confidence intervals. Compatible with
-\code{broom::tidy()} and the broader \code{tidymodels} ecosystem.
+`broom::tidy()` and the broader `tidymodels` ecosystem.
 }
 \examples{
 \donttest{
@@ -28,7 +28,8 @@ fit <- robustmediate(
   treatment_formula = X ~ Z1 + Z2 + Z3,
   mediator_formula  = M ~ X + Z1 + Z2 + Z3,
   outcome_formula   = Y ~ X + M + Z1 + Z2 + Z3,
-  data = sim_mediation, R = 50
+  data = sim_mediation, R = 10, verbose = FALSE,
+  dose_grid = seq(-2, 2, length.out = 25)
 )
 tidy(fit)
 }

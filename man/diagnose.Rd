@@ -7,13 +7,13 @@
 diagnose(x, ...)
 }
 \arguments{
-\item{x}{A \code{robmedfit} object.}
+\item{x}{A `robmedfit` object.}
 
 \item{...}{Ignored.}
 }
 \value{
-Invisibly returns a list with elements \code{balance}, \code{effects},
-\code{sensitivity}, \code{meditcv}, and \code{meditcv_profile}.
+Invisibly returns a list with elements `balance`, `effects`, and
+  `sensitivity`.
 }
 \description{
 Prints a formatted diagnostics report covering balance, mediation effects,

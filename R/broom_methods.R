@@ -34,7 +34,8 @@ broom::augment
 #'   treatment_formula = X ~ Z1 + Z2 + Z3,
 #'   mediator_formula  = M ~ X + Z1 + Z2 + Z3,
 #'   outcome_formula   = Y ~ X + M + Z1 + Z2 + Z3,
-#'   data = sim_mediation, R = 50
+#'   data = sim_mediation, R = 10, verbose = FALSE,
+#'   dose_grid = seq(-2, 2, length.out = 25)
 #' )
 #' tidy(fit)
 #' }
@@ -60,7 +61,9 @@ tidy.robmedfit <- function(x, conf.int = TRUE, ...) {
 #'
 #' @description
 #' Returns a one-row summary of the fit: sample size, bootstrap reps, reference
-#' dose, percentage mediated, and the two tipping-point sensitivity values.
+#' dose, percentage mediated, the value of `rho` at which the indirect effect
+#' is zero (`NA` when the sensitivity analysis does not apply), and maximum
+#' post-weighting SMDs.
 #'
 #' @param x   A `robmedfit` object.
 #' @param ... Ignored.
@@ -73,7 +76,8 @@ tidy.robmedfit <- function(x, conf.int = TRUE, ...) {
 #'   treatment_formula = X ~ Z1 + Z2 + Z3,
 #'   mediator_formula  = M ~ X + Z1 + Z2 + Z3,
 #'   outcome_formula   = Y ~ X + M + Z1 + Z2 + Z3,
-#'   data = sim_mediation, R = 50
+#'   data = sim_mediation, R = 10, verbose = FALSE,
+#'   dose_grid = seq(-2, 2, length.out = 25)
 #' )
 #' glance(fit)
 #' }
@@ -85,8 +89,7 @@ glance.robmedfit <- function(x, ...) {
     R             = x$meta$R,
     ref_dose      = x$meta$ref_dose,
     pct_mediated  = x$effects$summary$pct_mediated,
-    evalue_NIE    = x$sensitivity$tipping$evalue_NIE,
-    rho_min_NIE   = x$sensitivity$tipping$rho_min,
+    rho_zero_NIE  = if (is.null(x$sensitivity)) NA_real_ else x$sensitivity$rho_zero,
     max_smd_treat = x$balance$summary_stats$treatment$max_smd,
     max_smd_med   = x$balance$summary_stats$mediator$max_smd,
     stringsAsFactors = FALSE
@@ -97,7 +100,7 @@ glance.robmedfit <- function(x, ...) {
 #' Augment data with fitted values from a robmedfit object (broom-compatible)
 #'
 #' @description
-#' Returns the original data augmented with IPW weights, fitted mediator values,
+#' Returns the original data augmented with the balance weights, fitted mediator values,
 #' and fitted outcome values from the pathway models.
 #'
 #' @param x    A `robmedfit` object.
@@ -107,7 +110,8 @@ glance.robmedfit <- function(x, ...) {
 #'
 #' @return The original data frame with additional columns:
 #' \describe{
-#'   \item{`.ipw_weight`}{Stabilised inverse probability weights.}
+#'   \item{`.ipw_weight`}{Stabilised inverse probability weights from the
+#'     treatment model (the weights used in the balance diagnostics).}
 #'   \item{`.fitted_mediator`}{Predicted mediator values.}
 #'   \item{`.fitted_outcome`}{Predicted outcome values.}
 #'   \item{`.resid_mediator`}{Residuals from the mediator model.}
@@ -120,7 +124,8 @@ glance.robmedfit <- function(x, ...) {
 #'   treatment_formula = X ~ Z1 + Z2 + Z3,
 #'   mediator_formula  = M ~ X + Z1 + Z2 + Z3,
 #'   outcome_formula   = Y ~ X + M + Z1 + Z2 + Z3,
-#'   data = sim_mediation, R = 50
+#'   data = sim_mediation, R = 10, verbose = FALSE,
+#'   dose_grid = seq(-2, 2, length.out = 25)
 #' )
 #' aug <- augment(fit)
 #' hist(aug$.ipw_weight)
@@ -134,7 +139,7 @@ augment.robmedfit <- function(x, data = NULL, ...) {
       rlang::abort("Could not extract data from model. Please supply `data` explicitly.")
     }
   }
-  ipw <- .compute_gps_weights(x$models$treatment, data, x$meta$treat_var)
+  ipw <- .compute_ipw(x$models$treatment, data, x$meta$treat_var)
 
   data$.ipw_weight      <- ipw
   data$.fitted_mediator <- stats::fitted(x$models$mediator)

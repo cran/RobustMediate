@@ -2,8 +2,8 @@
 #'
 #' @description
 #' **RobustMediate** provides a workflow for causal mediation analysis with
-#' continuous treatments using inverse probability weighting (IPW), diagnostic
-#' tools, and sensitivity analysis.
+#' continuous treatments: g-computation estimates of natural direct and
+#' indirect effects, balance diagnostics, and sensitivity analysis.
 #'
 #' Main functions include:
 #'
@@ -18,15 +18,9 @@
 #'   natural indirect effects (NIE) over the treatment range, with pointwise
 #'   uncertainty bands.
 #'
-#' - **`plot_sensitivity()`** - Displays a bivariate sensitivity surface based on
-#'   E-values and sequential ignorability violations parameterized by `rho`.
-#'
-#' - **`sensitivity_meditcv()`** - Computes pathway-specific mediation ITCV
-#'   (`medITCV`) diagnostics based on Frank's impact threshold for a
-#'   confounding variable framework.
-#'
-#' - **`plot_meditcv()`** - Displays pathway-specific medITCV robustness
-#'   corridors for the a-path and b-path.
+#' - **`sensitivity_rho()`** and **`plot_sensitivity()`** - Sensitivity of the
+#'   indirect effect to confounding of the mediator-outcome relationship, using
+#'   the correlation parameter `rho` of Imai, Keele, and Yamamoto (2010).
 #'
 #' - **`diagnose()`** - Produces a formatted diagnostic summary of balance,
 #'   mediation effects, and sensitivity results.
@@ -48,31 +42,20 @@
 #' plot(fit)
 #' plot(fit, type = "balance")
 #' plot(fit, type = "sensitivity")
-#' plot(fit, type = "meditcv")
 #' diagnose(fit)
 #' ```
 #'
 #' @section Sensitivity interpretation:
-#' The E-value x `rho` surface is a bivariate robustness display rather than a
-#' single unified causal model. It is intended to help users examine how large
-#' different classes of unmeasured confounding would need to be to attenuate or
-#' nullify the estimated indirect effect.
-#'
-#' The mediation ITCV (`medITCV`) is reported separately for the a-path and
-#' b-path. The indirect-effect summary is interpreted as a minimum-path
-#' robustness bound governed by the weaker pathway.
+#' `sensitivity_rho()` reports how the indirect effect changes as the
+#' correlation `rho` between the mediator-model and outcome-model errors moves
+#' away from zero, and the value of `rho` at which it reaches zero. It applies
+#' to linear models only and assumes the treatment is ignorable given the
+#' covariates.
 #'
 #' @references
-#' Frank, K. A. (2000). Impact of a confounding variable on a regression
-#' coefficient. *Sociological Methods & Research*, 29(2), 147--194.
-#'
-#' Imai, K., Keele, L., & Yamamoto, T. (2010). Identification, inference, and
-#' sensitivity analysis for causal mediation effects. *Psychological Methods*,
-#' 15(4), 309--334.
-#'
-#' VanderWeele, T. J., & Ding, P. (2017). Sensitivity analysis in observational
-#' research: Introducing the E-value. *Annals of Internal Medicine*, 167(4),
-#' 268--274.
+#' Imai, K., Keele, L., & Yamamoto, T. (2010). Identification, inference and
+#' sensitivity analysis for causal mediation effects. *Statistical Science*,
+#' 25(1), 51--71.
 #'
 #' @docType package
 #' @name RobustMediate-package
@@ -82,6 +65,6 @@
   packageStartupMessage(
     "RobustMediate ", utils::packageVersion("RobustMediate"),
     " - Causal mediation analysis with diagnostics and sensitivity analysis.\n",
-    "  Docs: ?robustmediate | ?plot_balance | ?plot_mediation | ?plot_sensitivity | ?plot_meditcv"
+    "  Docs: ?robustmediate | ?plot_balance | ?plot_mediation | ?sensitivity_rho"
   )
 }

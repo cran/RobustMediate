@@ -7,13 +7,13 @@
 \method{as.data.frame}{robmedfit}(x, ...)
 }
 \arguments{
-\item{x}{A \code{robmedfit} object.}
+\item{x}{A `robmedfit` object.}
 
 \item{...}{Ignored.}
 }
 \value{
-A data frame with columns \code{dose}, \code{estimand}, \code{estimate},
-\code{lower}, \code{upper}.
+A data frame with columns `dose`, `estimand`, `estimate`,
+  `lower`, `upper`.
 }
 \description{
 Convenience accessor returning the NDE/NIE/TE curve data frame.

@@ -7,7 +7,7 @@
 \method{glance}{robmedfit}(x, ...)
 }
 \arguments{
-\item{x}{A \code{robmedfit} object.}
+\item{x}{A `robmedfit` object.}
 
 \item{...}{Ignored.}
 }
@@ -16,7 +16,9 @@ A one-row data frame.
 }
 \description{
 Returns a one-row summary of the fit: sample size, bootstrap reps, reference
-dose, percentage mediated, and the two tipping-point sensitivity values.
+dose, percentage mediated, the value of `rho` at which the indirect effect
+is zero (`NA` when the sensitivity analysis does not apply), and maximum
+post-weighting SMDs.
 }
 \examples{
 \donttest{
@@ -24,7 +26,8 @@ fit <- robustmediate(
   treatment_formula = X ~ Z1 + Z2 + Z3,
   mediator_formula  = M ~ X + Z1 + Z2 + Z3,
   outcome_formula   = Y ~ X + M + Z1 + Z2 + Z3,
-  data = sim_mediation, R = 50
+  data = sim_mediation, R = 10, verbose = FALSE,
+  dose_grid = seq(-2, 2, length.out = 25)
 )
 glance(fit)
 }

@@ -24,7 +24,7 @@ fit <- robustmediate(
   mediator_formula  = M ~ X + Z1 + Z2,
   outcome_formula   = Y ~ X + M + Z1 + Z2,
   data    = dat,
-  R       = 200,   # use >= 500 in practice
+  R       = 50,    # use >= 500 in practice
   verbose = FALSE
 )
 print(fit)
@@ -36,18 +36,25 @@ plot_balance(fit)
 plot_mediation(fit, estimands = c("NDE", "NIE", "TE"))
 
 ## ----sensitivity-plot---------------------------------------------------------
+sensitivity_rho(fit)
 plot_sensitivity(fit)
 
 ## ----diagnose-----------------------------------------------------------------
 diagnose(fit)
 
+## ----paths--------------------------------------------------------------------
+sp <- sensitivity_paths(fit)
+sp
+plot_paths(sp)
+
 ## ----cluster, eval = FALSE----------------------------------------------------
+# data(sim_mediation)
 # fit_clus <- robustmediate(
-#   treatment_formula = X ~ Z1 + Z2,
-#   mediator_formula  = M ~ X + Z1 + Z2,
-#   outcome_formula   = Y ~ X + M + Z1 + Z2,
-#   data        = dat,
-#   cluster_var = "school_id",
+#   treatment_formula = X ~ Z1 + Z2 + Z3,
+#   mediator_formula  = M ~ X + Z1 + Z2 + Z3,
+#   outcome_formula   = Y ~ X + M + Z1 + Z2 + Z3,
+#   data        = sim_mediation,
+#   cluster_var = "school",
 #   R           = 500
 # )
 

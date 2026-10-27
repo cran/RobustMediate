@@ -1,14 +1,16 @@
 #' Love Plot: Balance Diagnostics for Both Pathways
 #'
 #' @description
-#' Produces a publication-ready love plot showing standardised mean differences
-#' (SMDs) before and after IPW weighting for **both** the treatment and mediator
-#' pathways — stacked vertically in a single panel. This dual-pathway display is
-#' unique to **RobustMediate**; no other mediation package provides it.
+#' Produces a love plot of standardised mean differences (SMDs) before and
+#' after weighting by the stabilised treatment-model weights. For the treatment
+#' pathway, covariates are compared between units above and below the median
+#' treatment. For the mediator pathway, they are compared between units above
+#' and below their predicted mediator value; this is a rough screening check,
+#' not a formal balance criterion for the mediator model.
 #'
 #' @param x         A `robmedfit` object.
 #' @param threshold Absolute SMD threshold displayed as dashed reference lines.
-#'                  Reviewers conventionally accept |SMD| < 0.10. Default `0.1`.
+#'                  A common rule of thumb is |SMD| < 0.10. Default `0.1`.
 #' @param pathways  Character vector indicating which pathways to show.
 #'                  Options: `"treatment"`, `"mediator"`, or both (default).
 #' @param ...       Ignored (for S3 consistency).
@@ -21,7 +23,8 @@
 #'   treatment_formula = X ~ Z1 + Z2 + Z3,
 #'   mediator_formula  = M ~ X + Z1 + Z2 + Z3,
 #'   outcome_formula   = Y ~ X + M + Z1 + Z2 + Z3,
-#'   data = sim_mediation, R = 50
+#'   data = sim_mediation, R = 10, verbose = FALSE,
+#'   dose_grid = seq(-2, 2, length.out = 25)
 #' )
 #' plot_balance(fit)
 #' plot_balance(fit, threshold = 0.05, pathways = "treatment")

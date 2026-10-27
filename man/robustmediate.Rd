@@ -18,21 +18,20 @@ robustmediate(
   family_treatment = stats::gaussian(),
   family_mediator = stats::gaussian(),
   family_outcome = stats::gaussian(),
-  spline_df = 4,
-  evalue_seq = seq(1, 10, by = 0.25),
-  rho_seq = seq(-1, 1, by = 0.05),
+  spline_df = NULL,
+  rho_seq = seq(-0.9, 0.9, by = 0.01),
   verbose = TRUE
 )
 }
 \arguments{
 \item{treatment_formula}{Formula for the treatment model
-(for example, \code{X ~ Z1 + Z2}).}
+(for example, `X ~ Z1 + Z2`).}
 
 \item{mediator_formula}{Formula for the mediator model
-(for example, \code{M ~ X + Z1 + Z2}).}
+(for example, `M ~ X + Z1 + Z2`).}
 
 \item{outcome_formula}{Formula for the outcome model
-(for example, \code{Y ~ X + M + Z1 + Z2}).}
+(for example, `Y ~ X + M + Z1 + Z2`).}
 
 \item{data}{A data frame containing all analysis variables.}
 
@@ -43,58 +42,64 @@ treatment variable.}
 are evaluated. Defaults to 100 evenly spaced points across the observed
 treatment range.}
 
-\item{R}{Number of bootstrap replicates. Default is \code{500}.}
+\item{R}{Number of bootstrap replicates. Default is `500`.}
 
-\item{alpha}{Significance level. Default is \code{0.05}.}
+\item{alpha}{Significance level. Default is `0.05`.}
 
-\item{covariates}{Covariate names for balance diagnostics. If \code{NULL},
+\item{covariates}{Covariate names for balance diagnostics. If `NULL`,
 covariates are inferred from the treatment formula.}
 
-\item{cluster_var}{Optional clustering variable name. \code{NULL} assumes
-independent observations.}
+\item{cluster_var}{Optional clustering variable name. When supplied, the
+bootstrap resamples whole clusters, so intervals reflect within-cluster
+dependence. `NULL` assumes independent observations.}
 
 \item{family_treatment}{GLM family for the treatment model.
-Default is \code{stats::gaussian()}.}
+Default is `stats::gaussian()`.}
 
 \item{family_mediator}{GLM family for the mediator model.
-Default is \code{stats::gaussian()}.}
+Default is `stats::gaussian()`.}
 
 \item{family_outcome}{GLM family for the outcome model.
-Default is \code{stats::gaussian()}.}
+Default is `stats::gaussian()`.}
 
-\item{spline_df}{Degrees of freedom for spline-based effect summaries.
-Default is \code{4}.}
+\item{spline_df}{Deprecated and ignored. To allow a nonlinear dose-response,
+put a spline of the treatment in the formulas, for example
+`M ~ splines::ns(X, df = 3) + Z1`.}
 
-\item{evalue_seq}{Sequence of E-values used to build the sensitivity surface.
-Default is \code{seq(1, 10, by = 0.25)}.}
+\item{rho_seq}{Values of the sensitivity parameter `rho` passed to
+[sensitivity_rho()]. Default is `seq(-0.9, 0.9, by = 0.01)`.}
 
-\item{rho_seq}{Sequence of \code{rho} values used to build the sensitivity
-surface. Default is \code{seq(-1, 1, by = 0.05)}.}
-
-\item{verbose}{Logical; if \code{TRUE}, display progress messages.}
+\item{verbose}{Logical; if `TRUE`, display progress messages.}
 }
 \value{
-An object of class \code{"robmedfit"} containing:
+An object of class `"robmedfit"` containing:
 \describe{
-\item{\code{models}}{Fitted treatment, mediator, and outcome models.}
-\item{\code{balance}}{Balance statistics before and after weighting.}
-\item{\code{effects}}{Dose-response summaries for NDE, NIE, and TE, including
-bootstrap intervals.}
-\item{\code{sensitivity}}{Bivariate E-value and \code{rho} sensitivity surface.}
-\item{\code{meditcv}}{Pathway-specific medITCV object from
-\code{sensitivity_meditcv()}.}
-\item{\code{meditcv_profile}}{medITCV robustness profile from
-\code{sensitivity_meditcv_profile()}.}
-\item{\code{cluster}}{Cluster information, or \code{NULL} if clustering was not
-used.}
-\item{\code{meta}}{Call, variable names, dose settings, bootstrap settings,
-and sample information.}
+  \item{`models`}{Fitted treatment, mediator, and outcome models.}
+  \item{`balance`}{Balance statistics before and after weighting.}
+  \item{`effects`}{Dose-response summaries for NDE, NIE, and TE, including
+    bootstrap intervals.}
+  \item{`sensitivity`}{A `robmed_sens` object from [sensitivity_rho()], or
+    `NULL` when the models are not linear (the closed-form result does not
+    apply).}
+  \item{`cluster`}{Cluster variable, number of clusters, and cluster sizes,
+    or `NULL` if clustering was not used.}
+  \item{`meta`}{Call, variable names, dose settings, bootstrap settings,
+    and sample information.}
 }
 }
 \description{
 Fits treatment, mediator, and outcome models for causal mediation analysis
-with continuous treatments using inverse probability weighting (IPW), and
-returns a precomputed \code{robmedfit} object for plotting and diagnostics.
+with continuous treatments and returns a precomputed `robmedfit` object for
+plotting and diagnostics.
+
+Natural direct and indirect effects are estimated by g-computation from the
+fitted mediator and outcome models, averaging over the observed covariates.
+When the outcome model is linear in the mediator (identity link, mediator
+entering as a linear term), the predicted mediator mean is plugged in, which
+is exact. Otherwise the outcome prediction is averaged over the mediator's
+distribution: exactly for a binary mediator, and by a 15-point quantile rule
+for a Gaussian mediator. Stabilised inverse probability weights from the
+treatment model are used for the balance diagnostics only.
 }
 \examples{
 \donttest{
@@ -111,7 +116,7 @@ fit <- robustmediate(
   mediator_formula = M ~ X + Z1 + Z2,
   outcome_formula = Y ~ X + M + Z1 + Z2,
   data = dat,
-  R = 100
+  R = 10, verbose = FALSE
 )
 
 print(fit)
